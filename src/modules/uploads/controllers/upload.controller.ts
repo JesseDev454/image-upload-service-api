@@ -57,7 +57,9 @@ export class UploadController {
         message: "Invalid transformation query parameters",
         statusCode: 400,
         code: ERROR_CODES.VALIDATION_ERROR,
-        details: [{ field: "query", issue: error instanceof Error ? error.message : "Invalid query" }]
+        details: [
+          { field: "query", issue: error instanceof Error ? error.message : "Invalid query" }
+        ]
       });
     }
 

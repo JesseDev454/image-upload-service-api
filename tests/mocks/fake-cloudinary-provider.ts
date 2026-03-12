@@ -36,7 +36,9 @@ export class FakeCloudinaryProvider implements CloudinaryProvider {
     };
   }
 
-  public async deleteImage(_publicId: string): Promise<void> {
+  public async deleteImage(publicId: string): Promise<void> {
+    void publicId;
+
     this.deleteCallCount += 1;
     if (this.shouldFailDelete) {
       throw new AppError({

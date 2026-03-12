@@ -1,10 +1,7 @@
-import { Repository } from "typeorm";
+import type { Repository } from "typeorm";
 
-import { UploadEntity } from "../entities/upload.entity";
-import type {
-  CreateUploadRecordInput,
-  UploadRecord
-} from "../types/upload.types";
+import type { UploadEntity } from "../entities/upload.entity";
+import type { CreateUploadRecordInput, UploadRecord } from "../types/upload.types";
 import type { UploadRepository } from "./upload.repository";
 
 export class TypeOrmUploadRepository implements UploadRepository {

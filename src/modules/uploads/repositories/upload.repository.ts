@@ -1,7 +1,4 @@
-import type {
-  CreateUploadRecordInput,
-  UploadRecord
-} from "../types/upload.types";
+import type { CreateUploadRecordInput, UploadRecord } from "../types/upload.types";
 
 export interface UploadRepository {
   createUpload(input: CreateUploadRecordInput): Promise<UploadRecord>;

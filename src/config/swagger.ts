@@ -164,8 +164,16 @@ const swaggerDefinition = {
           },
           { name: "width", in: "query", schema: { type: "integer", minimum: 1 } },
           { name: "height", in: "query", schema: { type: "integer", minimum: 1 } },
-          { name: "quality", in: "query", schema: { oneOf: [{ type: "integer" }, { type: "string" }] } },
-          { name: "format", in: "query", schema: { type: "string", enum: ["auto", "jpg", "png", "webp"] } },
+          {
+            name: "quality",
+            in: "query",
+            schema: { oneOf: [{ type: "integer" }, { type: "string" }] }
+          },
+          {
+            name: "format",
+            in: "query",
+            schema: { type: "string", enum: ["auto", "jpg", "png", "webp"] }
+          },
           { name: "fit", in: "query", schema: { type: "string", enum: ["fill", "fit", "scale"] } }
         ],
         responses: {

@@ -40,9 +40,20 @@ export class InMemoryUploadRepository implements UploadRepository {
   }
 
   public async listByNewest(limit: number): Promise<UploadRecord[]> {
-    return [...this.records]
-      .sort((first, second) => second.createdAt.getTime() - first.createdAt.getTime())
-      .slice(0, limit);
+    return this.records
+      .map((item, index) => ({ item, index }))
+      .sort((first, second) => {
+        const createdAtDifference =
+          second.item.createdAt.getTime() - first.item.createdAt.getTime();
+
+        if (createdAtDifference !== 0) {
+          return createdAtDifference;
+        }
+
+        return second.index - first.index;
+      })
+      .slice(0, limit)
+      .map(({ item }) => item);
   }
 
   public async deleteById(id: string): Promise<void> {

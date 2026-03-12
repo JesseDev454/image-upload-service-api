@@ -3,7 +3,12 @@ import { randomUUID } from "crypto";
 import { AppError } from "../../../common/errors/app-error";
 import { ERROR_CODES } from "../../../common/errors/error-codes";
 import type { AppEnv } from "../../../config/env";
-import { isAllowedExtension, isAllowedMimeType, sanitizeFolder, sanitizeTextValue } from "../../../utils/file-utils";
+import {
+  isAllowedExtension,
+  isAllowedMimeType,
+  sanitizeFolder,
+  sanitizeTextValue
+} from "../../../utils/file-utils";
 import { isUuid, type ParsedTransformQuery, parseListLimit } from "../../../utils/validation";
 import type { CreateUploadMetadataDto } from "../dto/create-upload.dto";
 import type {
@@ -98,7 +103,9 @@ export class UploadService {
     }
   }
 
-  public async listUploads(limitInput: unknown): Promise<{ limit: number; uploads: UploadRecord[] }> {
+  public async listUploads(
+    limitInput: unknown
+  ): Promise<{ limit: number; uploads: UploadRecord[] }> {
     let limit: number;
     try {
       limit = parseListLimit(
@@ -111,7 +118,9 @@ export class UploadService {
         message: "Invalid query parameter",
         statusCode: 400,
         code: ERROR_CODES.VALIDATION_ERROR,
-        details: [{ field: "limit", issue: error instanceof Error ? error.message : "Invalid limit" }]
+        details: [
+          { field: "limit", issue: error instanceof Error ? error.message : "Invalid limit" }
+        ]
       });
     }
 
@@ -119,9 +128,14 @@ export class UploadService {
     return { limit, uploads };
   }
 
-  public async getUploadById(id: string, transformQuery: ParsedTransformQuery): Promise<UploadRecord & {
-    transformedUrl?: string;
-  }> {
+  public async getUploadById(
+    id: string,
+    transformQuery: ParsedTransformQuery
+  ): Promise<
+    UploadRecord & {
+      transformedUrl?: string;
+    }
+  > {
     this.assertUuid(id);
 
     const uploadRecord = await this.uploadRepository.findById(id);
@@ -184,7 +198,9 @@ export class UploadService {
         message: "Invalid upload metadata",
         statusCode: 422,
         code: ERROR_CODES.VALIDATION_ERROR,
-        details: [{ field: "metadata", issue: error instanceof Error ? error.message : "Invalid metadata" }]
+        details: [
+          { field: "metadata", issue: error instanceof Error ? error.message : "Invalid metadata" }
+        ]
       });
     }
   }
@@ -219,10 +235,10 @@ export class UploadService {
   ): string | undefined {
     const hasTransform = Boolean(
       transformQuery.width ||
-        transformQuery.height ||
-        transformQuery.quality !== undefined ||
-        transformQuery.format ||
-        transformQuery.fit
+      transformQuery.height ||
+      transformQuery.quality !== undefined ||
+      transformQuery.format ||
+      transformQuery.fit
     );
 
     if (!hasTransform) {

@@ -11,7 +11,9 @@ export const isAllowedMimeType = (mimeType: string): boolean => {
 };
 
 export const isAllowedExtension = (fileName: string): boolean => {
-  return ALLOWED_EXTENSIONS.includes(getFileExtension(fileName) as (typeof ALLOWED_EXTENSIONS)[number]);
+  return ALLOWED_EXTENSIONS.includes(
+    getFileExtension(fileName) as (typeof ALLOWED_EXTENSIONS)[number]
+  );
 };
 
 export const sanitizeTextValue = (

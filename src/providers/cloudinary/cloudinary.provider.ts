@@ -2,6 +2,7 @@ import { v2 as cloudinary } from "cloudinary";
 
 import { AppError } from "../../common/errors/app-error";
 import { ERROR_CODES } from "../../common/errors/error-codes";
+import { logger } from "../../common/logger";
 import type { GetUploadTransformQuery } from "../../modules/uploads/types/upload.types";
 import type {
   CloudinaryProvider,
@@ -14,6 +15,43 @@ interface CloudinaryProviderConfig {
   apiKey: string;
   apiSecret: string;
 }
+
+const formatProviderError = (error: unknown): Record<string, unknown> => {
+  if (error && typeof error === "object") {
+    const providerError = error as {
+      name?: string;
+      message?: string;
+      code?: string;
+      http_code?: number;
+      error?: {
+        message?: string;
+        http_code?: number;
+      };
+    };
+
+    return {
+      name: providerError.name,
+      message: providerError.message ?? providerError.error?.message ?? "Unknown provider error",
+      code: providerError.code,
+      httpCode: providerError.http_code ?? providerError.error?.http_code
+    };
+  }
+
+  if (!(error instanceof Error)) {
+    return { message: "Unknown provider error" };
+  }
+
+  const providerError = error as Error & {
+    http_code?: number;
+    name?: string;
+  };
+
+  return {
+    name: providerError.name,
+    message: providerError.message,
+    httpCode: providerError.http_code
+  };
+};
 
 const fitToCropMap: Record<NonNullable<GetUploadTransformQuery["fit"]>, string> = {
   fill: "fill",
@@ -50,6 +88,11 @@ export class CloudinaryProviderAdapter implements CloudinaryProvider {
         resourceType: uploadResult.resource_type
       };
     } catch (error) {
+      logger.error("Cloudinary upload failed", {
+        error: formatProviderError(error),
+        publicId: input.publicId
+      });
+
       throw new AppError({
         message: "Failed to upload image to media provider",
         statusCode: 502,
@@ -71,6 +114,11 @@ export class CloudinaryProviderAdapter implements CloudinaryProvider {
         throw new Error(`Unexpected provider delete result: ${deleteResult.result}`);
       }
     } catch (error) {
+      logger.error("Cloudinary delete failed", {
+        error: formatProviderError(error),
+        publicId
+      });
+
       throw new AppError({
         message: "Failed to delete image from media provider",
         statusCode: 502,

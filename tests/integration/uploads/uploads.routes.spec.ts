@@ -126,14 +126,14 @@ describe("Uploads API integration", () => {
   it("lists uploads ordered by newest", async () => {
     const { app } = createTestContext();
 
-    await request(app)
+    const firstCreateResponse = await request(app)
       .post("/api/v1/uploads")
       .attach("image", Buffer.from("first-image"), {
         filename: "first.jpg",
         contentType: "image/jpeg"
       });
 
-    await request(app)
+    const secondCreateResponse = await request(app)
       .post("/api/v1/uploads")
       .attach("image", Buffer.from("second-image"), {
         filename: "second.jpg",
@@ -144,7 +144,22 @@ describe("Uploads API integration", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(2);
-    expect(response.body.data[0].originalName).toBe("second.jpg");
+    expect(response.body.data[0].id).toBe(secondCreateResponse.body.data.id);
+    expect(response.body.data[1].id).toBe(firstCreateResponse.body.data.id);
+  });
+
+  it("rejects unexpected multipart file fields", async () => {
+    const { app } = createTestContext();
+
+    const response = await request(app)
+      .post("/api/v1/uploads")
+      .attach("avatar", Buffer.from("valid-image-content"), {
+        filename: "sample.jpg",
+        contentType: "image/jpeg"
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("VALIDATION_ERROR");
   });
 
   it("deletes upload by id", async () => {
