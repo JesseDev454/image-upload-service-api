@@ -41,3 +41,34 @@ export interface GetUploadTransformQuery {
   format?: "auto" | "jpg" | "png" | "webp";
   fit?: "fill" | "fit" | "scale";
 }
+
+export interface UploadListFilters {
+  format: string | null;
+  mimeType: string | null;
+  ownerType: string | null;
+  ownerId: string | null;
+}
+
+export interface ListUploadsQueryOptions {
+  page: number;
+  limit: number;
+  filters: UploadListFilters;
+}
+
+export interface ListUploadsRepositoryResult {
+  items: UploadRecord[];
+  total: number;
+}
+
+export interface UploadListPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ListUploadsResult {
+  items: UploadRecord[];
+  pagination: UploadListPagination;
+  filters: UploadListFilters;
+}

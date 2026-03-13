@@ -1,12 +1,12 @@
-import type { GetUploadTransformQuery } from "../../modules/uploads/types/upload.types";
+import type { GetUploadTransformQuery } from "../types/upload.types";
 
-export interface UploadToCloudinaryInput {
+export interface MediaStorageUploadInput {
   fileBuffer: Buffer;
   mimeType: string;
   publicId: string;
 }
 
-export interface UploadToCloudinaryResult {
+export interface MediaStorageUploadResult {
   publicId: string;
   secureUrl: string;
   format: string;
@@ -16,8 +16,8 @@ export interface UploadToCloudinaryResult {
   resourceType: string;
 }
 
-export interface CloudinaryProvider {
-  uploadImage(input: UploadToCloudinaryInput): Promise<UploadToCloudinaryResult>;
+export interface MediaStorageProvider {
+  uploadImage(input: MediaStorageUploadInput): Promise<MediaStorageUploadResult>;
   deleteImage(publicId: string): Promise<void>;
   buildTransformedUrl(publicId: string, options: GetUploadTransformQuery): string;
 }

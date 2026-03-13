@@ -3,12 +3,12 @@ import { v2 as cloudinary } from "cloudinary";
 import { AppError } from "../../common/errors/app-error";
 import { ERROR_CODES } from "../../common/errors/error-codes";
 import { logger } from "../../common/logger";
-import type { GetUploadTransformQuery } from "../../modules/uploads/types/upload.types";
 import type {
-  CloudinaryProvider,
-  UploadToCloudinaryInput,
-  UploadToCloudinaryResult
-} from "./cloudinary.types";
+  MediaStorageProvider,
+  MediaStorageUploadInput,
+  MediaStorageUploadResult
+} from "../../modules/uploads/contracts/media-storage.contract";
+import type { GetUploadTransformQuery } from "../../modules/uploads/types/upload.types";
 
 interface CloudinaryProviderConfig {
   cloudName: string;
@@ -59,7 +59,7 @@ const fitToCropMap: Record<NonNullable<GetUploadTransformQuery["fit"]>, string> 
   scale: "scale"
 };
 
-export class CloudinaryProviderAdapter implements CloudinaryProvider {
+export class CloudinaryProviderAdapter implements MediaStorageProvider {
   public constructor(config: CloudinaryProviderConfig) {
     cloudinary.config({
       cloud_name: config.cloudName,
@@ -69,7 +69,7 @@ export class CloudinaryProviderAdapter implements CloudinaryProvider {
     });
   }
 
-  public async uploadImage(input: UploadToCloudinaryInput): Promise<UploadToCloudinaryResult> {
+  public async uploadImage(input: MediaStorageUploadInput): Promise<MediaStorageUploadResult> {
     try {
       const dataUri = `data:${input.mimeType};base64,${input.fileBuffer.toString("base64")}`;
       const uploadResult = await cloudinary.uploader.upload(dataUri, {

@@ -40,10 +40,42 @@ describe("UploadService", () => {
           ownerType: "user"
         }
       })
-    ).rejects.toBeInstanceOf(AppError);
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: "VALIDATION_ERROR"
+    });
   });
 
-  it("caps list limit at configured maximum", async () => {
+  it("returns paginated list results with default pagination metadata", async () => {
+    const repository = new InMemoryUploadRepository();
+    const cloudinaryProvider = new FakeCloudinaryProvider();
+    const service = new UploadService(repository, cloudinaryProvider, {
+      uploadDefaults: {
+        maxFileSizeBytes: 5 * 1024 * 1024,
+        maxListLimit: 100,
+        defaultListLimit: 20
+      }
+    });
+
+    await service.createUpload({ file: createMockFile(), metadata: {} });
+
+    const result = await service.listUploads({});
+    expect(result.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.filters).toEqual({
+      format: null,
+      mimeType: null,
+      ownerType: null,
+      ownerId: null
+    });
+  });
+
+  it("throws validation error when limit exceeds configured maximum", async () => {
     const repository = new InMemoryUploadRepository();
     const cloudinaryProvider = new FakeCloudinaryProvider();
     const service = new UploadService(repository, cloudinaryProvider, {
@@ -54,13 +86,10 @@ describe("UploadService", () => {
       }
     });
 
-    await service.createUpload({ file: createMockFile(), metadata: {} });
-    await service.createUpload({ file: createMockFile(), metadata: {} });
-    await service.createUpload({ file: createMockFile(), metadata: {} });
-
-    const result = await service.listUploads(100);
-    expect(result.limit).toBe(2);
-    expect(result.uploads).toHaveLength(2);
+    await expect(service.listUploads({ limit: 100 })).rejects.toMatchObject({
+      statusCode: 400,
+      code: "VALIDATION_ERROR"
+    });
   });
 
   it("returns transformed url when transformation query is provided", async () => {
@@ -101,5 +130,42 @@ describe("UploadService", () => {
     });
 
     await expect(service.deleteUploadById(randomUUID())).rejects.toBeInstanceOf(AppError);
+  });
+
+  it("filters uploads by owner association", async () => {
+    const repository = new InMemoryUploadRepository();
+    const cloudinaryProvider = new FakeCloudinaryProvider();
+    const service = new UploadService(repository, cloudinaryProvider, {
+      uploadDefaults: {
+        maxFileSizeBytes: 5 * 1024 * 1024,
+        maxListLimit: 100,
+        defaultListLimit: 20
+      }
+    });
+
+    await service.createUpload({
+      file: createMockFile(),
+      metadata: {
+        ownerType: "user",
+        ownerId: "user-1"
+      }
+    });
+
+    await service.createUpload({
+      file: createMockFile(),
+      metadata: {
+        ownerType: "product",
+        ownerId: "product-1"
+      }
+    });
+
+    const result = await service.listUploads({
+      ownerType: "user",
+      ownerId: "user-1"
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].ownerType).toBe("user");
+    expect(result.items[0].ownerId).toBe("user-1");
   });
 });

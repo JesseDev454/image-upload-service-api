@@ -9,6 +9,8 @@ import {
 
 @Entity({ name: "uploads" })
 @Index("idx_uploads_created_at", ["createdAt"])
+@Index("idx_uploads_format", ["format"])
+@Index("idx_uploads_mime_type", ["mimeType"])
 @Index("idx_uploads_owner", ["ownerType", "ownerId"])
 @Index("idx_uploads_folder", ["folder"])
 export class UploadEntity {

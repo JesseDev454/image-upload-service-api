@@ -2,20 +2,20 @@ import { randomUUID } from "crypto";
 
 import { AppError } from "../../src/common/errors/app-error";
 import { ERROR_CODES } from "../../src/common/errors/error-codes";
-import type { GetUploadTransformQuery } from "../../src/modules/uploads/types/upload.types";
 import type {
-  CloudinaryProvider,
-  UploadToCloudinaryInput,
-  UploadToCloudinaryResult
-} from "../../src/providers/cloudinary/cloudinary.types";
+  MediaStorageProvider,
+  MediaStorageUploadInput,
+  MediaStorageUploadResult
+} from "../../src/modules/uploads/contracts/media-storage.contract";
+import type { GetUploadTransformQuery } from "../../src/modules/uploads/types/upload.types";
 
-export class FakeCloudinaryProvider implements CloudinaryProvider {
+export class FakeCloudinaryProvider implements MediaStorageProvider {
   public shouldFailUpload = false;
   public shouldFailDelete = false;
   public uploadCallCount = 0;
   public deleteCallCount = 0;
 
-  public async uploadImage(input: UploadToCloudinaryInput): Promise<UploadToCloudinaryResult> {
+  public async uploadImage(input: MediaStorageUploadInput): Promise<MediaStorageUploadResult> {
     this.uploadCallCount += 1;
     if (this.shouldFailUpload) {
       throw new AppError({
@@ -25,10 +25,17 @@ export class FakeCloudinaryProvider implements CloudinaryProvider {
       });
     }
 
+    let derivedFormat = "jpg";
+    if (input.mimeType === "image/png") {
+      derivedFormat = "png";
+    } else if (input.mimeType === "image/webp") {
+      derivedFormat = "webp";
+    }
+
     return {
       publicId: input.publicId || `uploads/test/${randomUUID()}`,
-      secureUrl: `https://res.cloudinary.com/demo/image/upload/v1/${input.publicId}.jpg`,
-      format: "jpg",
+      secureUrl: `https://res.cloudinary.com/demo/image/upload/v1/${input.publicId}.${derivedFormat}`,
+      format: derivedFormat,
       width: 1200,
       height: 800,
       bytes: input.fileBuffer.length,

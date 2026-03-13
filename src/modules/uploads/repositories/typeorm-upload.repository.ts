@@ -1,7 +1,12 @@
 import type { Repository } from "typeorm";
 
 import type { UploadEntity } from "../entities/upload.entity";
-import type { CreateUploadRecordInput, UploadRecord } from "../types/upload.types";
+import type {
+  CreateUploadRecordInput,
+  ListUploadsQueryOptions,
+  ListUploadsRepositoryResult,
+  UploadRecord
+} from "../types/upload.types";
 import type { UploadRepository } from "./upload.repository";
 
 export class TypeOrmUploadRepository implements UploadRepository {
@@ -34,13 +39,39 @@ export class TypeOrmUploadRepository implements UploadRepository {
     });
   }
 
-  public async listByNewest(limit: number): Promise<UploadRecord[]> {
-    return this.repository.find({
-      order: {
-        createdAt: "DESC"
-      },
-      take: limit
-    });
+  public async listByNewest(
+    options: ListUploadsQueryOptions
+  ): Promise<ListUploadsRepositoryResult> {
+    const queryBuilder = this.repository.createQueryBuilder("upload");
+
+    if (options.filters.format) {
+      queryBuilder.andWhere("upload.format = :format", { format: options.filters.format });
+    }
+
+    if (options.filters.mimeType) {
+      queryBuilder.andWhere("upload.mimeType = :mimeType", {
+        mimeType: options.filters.mimeType
+      });
+    }
+
+    if (options.filters.ownerType) {
+      queryBuilder.andWhere("upload.ownerType = :ownerType", {
+        ownerType: options.filters.ownerType
+      });
+    }
+
+    if (options.filters.ownerId) {
+      queryBuilder.andWhere("upload.ownerId = :ownerId", { ownerId: options.filters.ownerId });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy("upload.createdAt", "DESC")
+      .addOrderBy("upload.id", "DESC")
+      .skip((options.page - 1) * options.limit)
+      .take(options.limit)
+      .getManyAndCount();
+
+    return { items, total };
   }
 
   public async deleteById(id: string): Promise<void> {

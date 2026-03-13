@@ -9,18 +9,24 @@ import {
   sanitizeFolder,
   sanitizeTextValue
 } from "../../../utils/file-utils";
-import { isUuid, type ParsedTransformQuery, parseListLimit } from "../../../utils/validation";
+import {
+  isUuid,
+  type ParsedTransformQuery,
+  parseListUploadsQuery,
+  QueryValidationError
+} from "../../../utils/validation";
+import type {
+  MediaStorageProvider,
+  MediaStorageUploadResult
+} from "../contracts/media-storage.contract";
 import type { CreateUploadMetadataDto } from "../dto/create-upload.dto";
 import type {
   CreateUploadRecordInput,
   GetUploadTransformQuery,
+  ListUploadsResult,
   UploadRecord
 } from "../types/upload.types";
 import type { UploadRepository } from "../repositories/upload.repository";
-import type {
-  CloudinaryProvider,
-  UploadToCloudinaryResult
-} from "../../../providers/cloudinary/cloudinary.types";
 
 interface CreateUploadInput {
   file?: Express.Multer.File;
@@ -34,7 +40,7 @@ interface UploadServiceConfig {
 export class UploadService {
   public constructor(
     private readonly uploadRepository: UploadRepository,
-    private readonly cloudinaryProvider: CloudinaryProvider,
+    private readonly mediaStorageProvider: MediaStorageProvider,
     private readonly config: UploadServiceConfig
   ) {}
 
@@ -60,9 +66,9 @@ export class UploadService {
     const metadata = this.parseAndValidateMetadata(input.metadata);
     const publicId = this.buildPublicId(metadata.folder);
 
-    let cloudUpload: UploadToCloudinaryResult | null = null;
+    let cloudUpload: MediaStorageUploadResult | null = null;
     try {
-      cloudUpload = await this.cloudinaryProvider.uploadImage({
+      cloudUpload = await this.mediaStorageProvider.uploadImage({
         fileBuffer: input.file.buffer,
         mimeType: input.file.mimetype,
         publicId
@@ -87,7 +93,7 @@ export class UploadService {
       return await this.uploadRepository.createUpload(recordToSave);
     } catch (error) {
       if (cloudUpload?.publicId) {
-        await this.cloudinaryProvider.deleteImage(cloudUpload.publicId).catch(() => undefined);
+        await this.mediaStorageProvider.deleteImage(cloudUpload.publicId).catch(() => undefined);
       }
 
       if (error instanceof AppError) {
@@ -103,29 +109,40 @@ export class UploadService {
     }
   }
 
-  public async listUploads(
-    limitInput: unknown
-  ): Promise<{ limit: number; uploads: UploadRecord[] }> {
-    let limit: number;
+  public async listUploads(query: Record<string, unknown>): Promise<ListUploadsResult> {
     try {
-      limit = parseListLimit(
-        limitInput,
-        this.config.uploadDefaults.defaultListLimit,
-        this.config.uploadDefaults.maxListLimit
-      );
+      const listQuery = parseListUploadsQuery(query, {
+        defaultLimit: this.config.uploadDefaults.defaultListLimit,
+        maxLimit: this.config.uploadDefaults.maxListLimit
+      });
+      const { items, total } = await this.uploadRepository.listByNewest(listQuery);
+
+      return {
+        items,
+        pagination: {
+          page: listQuery.page,
+          limit: listQuery.limit,
+          total,
+          totalPages: total === 0 ? 0 : Math.ceil(total / listQuery.limit)
+        },
+        filters: listQuery.filters
+      };
     } catch (error) {
+      const issue =
+        error instanceof QueryValidationError
+          ? { field: error.field, issue: error.message }
+          : {
+              field: "query",
+              issue: error instanceof Error ? error.message : "Invalid query parameters"
+            };
+
       throw new AppError({
         message: "Invalid query parameter",
         statusCode: 400,
         code: ERROR_CODES.VALIDATION_ERROR,
-        details: [
-          { field: "limit", issue: error instanceof Error ? error.message : "Invalid limit" }
-        ]
+        details: [issue]
       });
     }
-
-    const uploads = await this.uploadRepository.listByNewest(limit);
-    return { limit, uploads };
   }
 
   public async getUploadById(
@@ -170,7 +187,7 @@ export class UploadService {
       });
     }
 
-    await this.cloudinaryProvider.deleteImage(uploadRecord.publicId);
+    await this.mediaStorageProvider.deleteImage(uploadRecord.publicId);
     await this.uploadRepository.deleteById(id);
 
     return { id, deleted: true };
@@ -196,7 +213,7 @@ export class UploadService {
     } catch (error) {
       throw new AppError({
         message: "Invalid upload metadata",
-        statusCode: 422,
+        statusCode: 400,
         code: ERROR_CODES.VALIDATION_ERROR,
         details: [
           { field: "metadata", issue: error instanceof Error ? error.message : "Invalid metadata" }
@@ -245,6 +262,6 @@ export class UploadService {
       return undefined;
     }
 
-    return this.cloudinaryProvider.buildTransformedUrl(publicId, transformQuery);
+    return this.mediaStorageProvider.buildTransformedUrl(publicId, transformQuery);
   }
 }

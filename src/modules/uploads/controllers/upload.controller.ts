@@ -32,18 +32,17 @@ export class UploadController {
   };
 
   public listUploads = async (request: Request, response: Response): Promise<void> => {
-    const { limit, uploads } = await this.uploadService.listUploads(request.query.limit);
+    const listResult = await this.uploadService.listUploads(
+      request.query as Record<string, unknown>
+    );
 
     sendSuccess({
       response,
       statusCode: 200,
-      message: "Uploads fetched successfully",
-      data: uploads,
+      message: "Uploads retrieved successfully",
+      data: listResult,
       meta: {
-        requestId: request.requestId,
-        count: uploads.length,
-        limit,
-        sort: "createdAt:desc"
+        requestId: request.requestId
       }
     });
   };

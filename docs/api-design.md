@@ -3,7 +3,7 @@
 ## API Conventions
 - Base path: `/api/v1`
 - Versioning: URI versioning
-- Response format: JSON envelope
+- Response format: JSON envelope with `meta.requestId`
 - Upload content type: `multipart/form-data`
 - ID format: UUID
 
@@ -13,7 +13,7 @@
 ```json
 {
   "success": true,
-  "message": "Upload created successfully",
+  "message": "Uploads retrieved successfully",
   "data": {},
   "meta": { "requestId": "req_123" }
 }
@@ -32,7 +32,7 @@
 }
 ```
 
-## MVP Endpoints
+## Implemented Endpoints
 
 ### `POST /api/v1/uploads`
 - **Purpose:** Upload single image and persist metadata.
@@ -45,12 +45,22 @@
   - allowed MIME + extension
   - max file size
   - `ownerType` and `ownerId` must be provided together
-- **Status Codes:** `201`, `400`, `413`, `415`, `422`, `502`, `500`
+- **Status Codes:** `201`, `400`, `413`, `415`, `502`, `500`
 
 ### `GET /api/v1/uploads`
 - **Purpose:** List upload records.
-- **Query (MVP):** `limit` (optional, default 20, max 50)
-- **Sort:** newest-first by `createdAt`
+- **Query:**
+  - `page` (optional, default `1`)
+  - `limit` (optional, default `20`, max `100`)
+  - `format` (optional: `jpg`, `jpeg`, `png`, `webp`)
+  - `mimeType` (optional: `image/jpeg`, `image/png`, `image/webp`)
+  - `ownerType` (optional)
+  - `ownerId` (optional)
+- **Response Shape:**
+  - `data.items`
+  - `data.pagination`
+  - `data.filters`
+- **Sort:** newest-first by `createdAt`, deterministic tie-break by `id`
 - **Status Codes:** `200`, `400`, `500`
 
 ### `GET /api/v1/uploads/:id`
@@ -64,16 +74,15 @@
 - **Path Param:** `id` (UUID)
 - **Status Codes:** `200`, `400`, `404`, `502`, `500`
 
-## Optional Post-MVP Endpoints
-- `POST /api/v1/uploads/multiple`
-- `GET /api/v1/uploads/:id/url`
-- `PATCH /api/v1/uploads/:id/replace`
-- `GET /api/v1/uploads/:id/variants`
-
 ## Listing Strategy
-- MVP: capped `limit` + newest-first sorting.
-- Post-MVP: page-based pagination and filtering (`owner`, `folder`, `format`, date range).
+- Current implementation uses page-based pagination and optional filtering by `format`, `mimeType`, `ownerType`, and `ownerId`.
+- The service parses and validates the query, and the repository owns DB pagination/filter execution.
+
+## Resource Association Strategy
+- Uploads can optionally belong to a business resource using `ownerType` and `ownerId`.
+- The pair rule is enforced consistently at upload creation time.
+- Association remains generic so the media service can be reused across different domains without hardcoding only `user` or `product`.
 
 ## Transformation Strategy
-- MVP: dynamic transformation URL generation using stored `publicId` and query params.
-- Post-MVP: persisted named variants only when fixed presets are required.
+- Dynamic transformation URL generation uses stored `publicId` plus query parameters.
+- Fixed named variants remain post-MVP.

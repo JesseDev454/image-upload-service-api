@@ -96,7 +96,7 @@ export const loadEnv = (): AppEnv => {
     },
     upload: {
       maxFileSizeBytes: parseNumber(process.env.MAX_FILE_SIZE_BYTES, 5 * 1024 * 1024),
-      maxListLimit: parseNumber(process.env.MAX_LIST_LIMIT, 50),
+      maxListLimit: parseNumber(process.env.MAX_LIST_LIMIT, 100),
       defaultListLimit: parseNumber(process.env.DEFAULT_LIST_LIMIT, 20)
     }
   };

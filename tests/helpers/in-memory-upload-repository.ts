@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 
 import type {
   CreateUploadRecordInput,
+  ListUploadsQueryOptions,
+  ListUploadsRepositoryResult,
   UploadRecord
 } from "../../src/modules/uploads/types/upload.types";
 import type { UploadRepository } from "../../src/modules/uploads/repositories/upload.repository";
@@ -39,8 +41,29 @@ export class InMemoryUploadRepository implements UploadRepository {
     return this.records.find((item) => item.id === id) ?? null;
   }
 
-  public async listByNewest(limit: number): Promise<UploadRecord[]> {
-    return this.records
+  public async listByNewest(
+    options: ListUploadsQueryOptions
+  ): Promise<ListUploadsRepositoryResult> {
+    const filteredRecords = this.records
+      .filter((item) => {
+        if (options.filters.format && item.format !== options.filters.format) {
+          return false;
+        }
+
+        if (options.filters.mimeType && item.mimeType !== options.filters.mimeType) {
+          return false;
+        }
+
+        if (options.filters.ownerType && item.ownerType !== options.filters.ownerType) {
+          return false;
+        }
+
+        if (options.filters.ownerId && item.ownerId !== options.filters.ownerId) {
+          return false;
+        }
+
+        return true;
+      })
       .map((item, index) => ({ item, index }))
       .sort((first, second) => {
         const createdAtDifference =
@@ -52,8 +75,15 @@ export class InMemoryUploadRepository implements UploadRepository {
 
         return second.index - first.index;
       })
-      .slice(0, limit)
       .map(({ item }) => item);
+
+    const startIndex = (options.page - 1) * options.limit;
+    const items = filteredRecords.slice(startIndex, startIndex + options.limit);
+
+    return {
+      items,
+      total: filteredRecords.length
+    };
   }
 
   public async deleteById(id: string): Promise<void> {
